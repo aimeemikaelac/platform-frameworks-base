@@ -129,6 +129,17 @@ class BatteryService extends Binder {
         mLowBatteryCloseWarningLevel = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_lowBatteryCloseWarningLevel);
 
+        // iVeia, dw 12/20/2011 -- Set sane defaults in case there is no battery
+        // board present, i.e., using only AC power supply.
+        mBatteryPresent = false;
+        mBatteryLevel = 0;
+        mBatteryStatus = BatteryManager.BATTERY_STATUS_UNKNOWN;
+        mAcOnline = true;
+        mUsbOnline = false;
+        mBatteryTemperature = 210;  // 1/10 deg C, room temp
+        mBatteryTechnology = "N/A";
+
+
         mUEventObserver.startObserving("SUBSYSTEM=power_supply");
 
         // set initial status
@@ -206,136 +217,144 @@ class BatteryService extends Binder {
     private native void native_update();
 
     private synchronized final void update() {
-        native_update();
 
-        boolean logOutlier = false;
-        long dischargeDuration = 0;
-
-        mBatteryLevelCritical = mBatteryLevel <= CRITICAL_BATTERY_LEVEL;
-        if (mAcOnline) {
-            mPlugType = BatteryManager.BATTERY_PLUGGED_AC;
-        } else if (mUsbOnline) {
-            mPlugType = BatteryManager.BATTERY_PLUGGED_USB;
-        } else {
-            mPlugType = BATTERY_PLUGGED_NONE;
-        }
+        // iVeia, dw 12/20/2011 -- Disable "native_update()" as it is unimplemented.
+        // Always assume AC plugged in & send the intent.
+        mPlugType = BatteryManager.BATTERY_PLUGGED_AC; 
         
-        // Let the battery stats keep track of the current level.
-        try {
-            mBatteryStats.setBatteryState(mBatteryStatus, mBatteryHealth,
-                    mPlugType, mBatteryLevel, mBatteryTemperature,
-                    mBatteryVoltage);
-        } catch (RemoteException e) {
-            // Should never happen.
-        }
+        sendIntent();
         
-        shutdownIfNoPower();
-        shutdownIfOverTemp();
+//        native_update();
 
-        if (mBatteryStatus != mLastBatteryStatus ||
-                mBatteryHealth != mLastBatteryHealth ||
-                mBatteryPresent != mLastBatteryPresent ||
-                mBatteryLevel != mLastBatteryLevel ||
-                mPlugType != mLastPlugType ||
-                mBatteryVoltage != mLastBatteryVoltage ||
-                mBatteryTemperature != mLastBatteryTemperature) {
 
-            if (mPlugType != mLastPlugType) {
-                if (mLastPlugType == BATTERY_PLUGGED_NONE) {
-                    // discharging -> charging
-
-                    // There's no value in this data unless we've discharged at least once and the
-                    // battery level has changed; so don't log until it does.
-                    if (mDischargeStartTime != 0 && mDischargeStartLevel != mBatteryLevel) {
-                        dischargeDuration = SystemClock.elapsedRealtime() - mDischargeStartTime;
-                        logOutlier = true;
-                        EventLog.writeEvent(EventLogTags.BATTERY_DISCHARGE, dischargeDuration,
-                                mDischargeStartLevel, mBatteryLevel);
-                        // make sure we see a discharge event before logging again
-                        mDischargeStartTime = 0;
-                    }
-                } else if (mPlugType == BATTERY_PLUGGED_NONE) {
-                    // charging -> discharging or we just powered up
-                    mDischargeStartTime = SystemClock.elapsedRealtime();
-                    mDischargeStartLevel = mBatteryLevel;
-                }
-            }
-            if (mBatteryStatus != mLastBatteryStatus ||
-                    mBatteryHealth != mLastBatteryHealth ||
-                    mBatteryPresent != mLastBatteryPresent ||
-                    mPlugType != mLastPlugType) {
-                EventLog.writeEvent(EventLogTags.BATTERY_STATUS,
-                        mBatteryStatus, mBatteryHealth, mBatteryPresent ? 1 : 0,
-                        mPlugType, mBatteryTechnology);
-            }
-            if (mBatteryLevel != mLastBatteryLevel ||
-                    mBatteryVoltage != mLastBatteryVoltage ||
-                    mBatteryTemperature != mLastBatteryTemperature) {
-                EventLog.writeEvent(EventLogTags.BATTERY_LEVEL,
-                        mBatteryLevel, mBatteryVoltage, mBatteryTemperature);
-            }
-            if (mBatteryLevelCritical && !mLastBatteryLevelCritical &&
-                    mPlugType == BATTERY_PLUGGED_NONE) {
-                // We want to make sure we log discharge cycle outliers
-                // if the battery is about to die.
-                dischargeDuration = SystemClock.elapsedRealtime() - mDischargeStartTime;
-                logOutlier = true;
-            }
-
-            final boolean plugged = mPlugType != BATTERY_PLUGGED_NONE;
-            final boolean oldPlugged = mLastPlugType != BATTERY_PLUGGED_NONE;
-
-            /* The ACTION_BATTERY_LOW broadcast is sent in these situations:
-             * - is just un-plugged (previously was plugged) and battery level is
-             *   less than or equal to WARNING, or
-             * - is not plugged and battery level falls to WARNING boundary
-             *   (becomes <= mLowBatteryWarningLevel).
-             */
-            final boolean sendBatteryLow = !plugged
-                && mBatteryStatus != BatteryManager.BATTERY_STATUS_UNKNOWN
-                && mBatteryLevel <= mLowBatteryWarningLevel
-                && (oldPlugged || mLastBatteryLevel > mLowBatteryWarningLevel);
-
-            sendIntent();
-
-            // Separate broadcast is sent for power connected / not connected
-            // since the standard intent will not wake any applications and some
-            // applications may want to have smart behavior based on this.
-            Intent statusIntent = new Intent();
-            statusIntent.setFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-            if (mPlugType != 0 && mLastPlugType == 0) {
-                statusIntent.setAction(Intent.ACTION_POWER_CONNECTED);
-                mContext.sendBroadcast(statusIntent);
-            }
-            else if (mPlugType == 0 && mLastPlugType != 0) {
-                statusIntent.setAction(Intent.ACTION_POWER_DISCONNECTED);
-                mContext.sendBroadcast(statusIntent);
-            }
-
-            if (sendBatteryLow) {
-                mSentLowBatteryBroadcast = true;
-                statusIntent.setAction(Intent.ACTION_BATTERY_LOW);
-                mContext.sendBroadcast(statusIntent);
-            } else if (mSentLowBatteryBroadcast && mLastBatteryLevel >= mLowBatteryCloseWarningLevel) {
-                mSentLowBatteryBroadcast = false;
-                statusIntent.setAction(Intent.ACTION_BATTERY_OKAY);
-                mContext.sendBroadcast(statusIntent);
-            }
-
-            // This needs to be done after sendIntent() so that we get the lastest battery stats.
-            if (logOutlier && dischargeDuration != 0) {
-                logOutlier(dischargeDuration);
-            }
-
-            mLastBatteryStatus = mBatteryStatus;
-            mLastBatteryHealth = mBatteryHealth;
-            mLastBatteryPresent = mBatteryPresent;
-            mLastBatteryLevel = mBatteryLevel;
-            mLastPlugType = mPlugType;
-            mLastBatteryVoltage = mBatteryVoltage;
-            mLastBatteryTemperature = mBatteryTemperature;
-            mLastBatteryLevelCritical = mBatteryLevelCritical;
-        }
+//        boolean logOutlier = false;
+//        long dischargeDuration = 0;
+//
+//        mBatteryLevelCritical = mBatteryLevel <= CRITICAL_BATTERY_LEVEL;
+//        if (mAcOnline) {
+//            mPlugType = BatteryManager.BATTERY_PLUGGED_AC;
+//        } else if (mUsbOnline) {
+//            mPlugType = BatteryManager.BATTERY_PLUGGED_USB;
+//        } else {
+//            mPlugType = BATTERY_PLUGGED_NONE;
+//        }
+//        
+//        // Let the battery stats keep track of the current level.
+//        try {
+//            mBatteryStats.setBatteryState(mBatteryStatus, mBatteryHealth,
+//                    mPlugType, mBatteryLevel, mBatteryTemperature,
+//                    mBatteryVoltage);
+//        } catch (RemoteException e) {
+//            // Should never happen.
+//        }
+//        
+//        shutdownIfNoPower();
+//        shutdownIfOverTemp();
+//
+//        if (mBatteryStatus != mLastBatteryStatus ||
+//                mBatteryHealth != mLastBatteryHealth ||
+//                mBatteryPresent != mLastBatteryPresent ||
+//                mBatteryLevel != mLastBatteryLevel ||
+//                mPlugType != mLastPlugType ||
+//                mBatteryVoltage != mLastBatteryVoltage ||
+//                mBatteryTemperature != mLastBatteryTemperature) {
+//
+//            if (mPlugType != mLastPlugType) {
+//                if (mLastPlugType == BATTERY_PLUGGED_NONE) {
+//                    // discharging -> charging
+//
+//                    // There's no value in this data unless we've discharged at least once and the
+//                    // battery level has changed; so don't log until it does.
+//                    if (mDischargeStartTime != 0 && mDischargeStartLevel != mBatteryLevel) {
+//                        dischargeDuration = SystemClock.elapsedRealtime() - mDischargeStartTime;
+//                        logOutlier = true;
+//                        EventLog.writeEvent(EventLogTags.BATTERY_DISCHARGE, dischargeDuration,
+//                                mDischargeStartLevel, mBatteryLevel);
+//                        // make sure we see a discharge event before logging again
+//                        mDischargeStartTime = 0;
+//                    }
+//                } else if (mPlugType == BATTERY_PLUGGED_NONE) {
+//                    // charging -> discharging or we just powered up
+//                    mDischargeStartTime = SystemClock.elapsedRealtime();
+//                    mDischargeStartLevel = mBatteryLevel;
+//                }
+//            }
+//            if (mBatteryStatus != mLastBatteryStatus ||
+//                    mBatteryHealth != mLastBatteryHealth ||
+//                    mBatteryPresent != mLastBatteryPresent ||
+//                    mPlugType != mLastPlugType) {
+//                EventLog.writeEvent(EventLogTags.BATTERY_STATUS,
+//                        mBatteryStatus, mBatteryHealth, mBatteryPresent ? 1 : 0,
+//                        mPlugType, mBatteryTechnology);
+//            }
+//            if (mBatteryLevel != mLastBatteryLevel ||
+//                    mBatteryVoltage != mLastBatteryVoltage ||
+//                    mBatteryTemperature != mLastBatteryTemperature) {
+//                EventLog.writeEvent(EventLogTags.BATTERY_LEVEL,
+//                        mBatteryLevel, mBatteryVoltage, mBatteryTemperature);
+//            }
+//            if (mBatteryLevelCritical && !mLastBatteryLevelCritical &&
+//                    mPlugType == BATTERY_PLUGGED_NONE) {
+//                // We want to make sure we log discharge cycle outliers
+//                // if the battery is about to die.
+//                dischargeDuration = SystemClock.elapsedRealtime() - mDischargeStartTime;
+//                logOutlier = true;
+//            }
+//
+//            final boolean plugged = mPlugType != BATTERY_PLUGGED_NONE;
+//            final boolean oldPlugged = mLastPlugType != BATTERY_PLUGGED_NONE;
+//
+//            /* The ACTION_BATTERY_LOW broadcast is sent in these situations:
+//             * - is just un-plugged (previously was plugged) and battery level is
+//             *   less than or equal to WARNING, or
+//             * - is not plugged and battery level falls to WARNING boundary
+//             *   (becomes <= mLowBatteryWarningLevel).
+//             */
+//            final boolean sendBatteryLow = !plugged
+//                && mBatteryStatus != BatteryManager.BATTERY_STATUS_UNKNOWN
+//                && mBatteryLevel <= mLowBatteryWarningLevel
+//                && (oldPlugged || mLastBatteryLevel > mLowBatteryWarningLevel);
+//
+//            sendIntent();
+//
+//            // Separate broadcast is sent for power connected / not connected
+//            // since the standard intent will not wake any applications and some
+//            // applications may want to have smart behavior based on this.
+//            Intent statusIntent = new Intent();
+//            statusIntent.setFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+//            if (mPlugType != 0 && mLastPlugType == 0) {
+//                statusIntent.setAction(Intent.ACTION_POWER_CONNECTED);
+//                mContext.sendBroadcast(statusIntent);
+//            }
+//            else if (mPlugType == 0 && mLastPlugType != 0) {
+//                statusIntent.setAction(Intent.ACTION_POWER_DISCONNECTED);
+//                mContext.sendBroadcast(statusIntent);
+//            }
+//
+//            if (sendBatteryLow) {
+//                mSentLowBatteryBroadcast = true;
+//                statusIntent.setAction(Intent.ACTION_BATTERY_LOW);
+//                mContext.sendBroadcast(statusIntent);
+//            } else if (mSentLowBatteryBroadcast && mLastBatteryLevel >= mLowBatteryCloseWarningLevel) {
+//                mSentLowBatteryBroadcast = false;
+//                statusIntent.setAction(Intent.ACTION_BATTERY_OKAY);
+//                mContext.sendBroadcast(statusIntent);
+//            }
+//
+//            // This needs to be done after sendIntent() so that we get the lastest battery stats.
+//            if (logOutlier && dischargeDuration != 0) {
+//                logOutlier(dischargeDuration);
+//            }
+//
+//            mLastBatteryStatus = mBatteryStatus;
+//            mLastBatteryHealth = mBatteryHealth;
+//            mLastBatteryPresent = mBatteryPresent;
+//            mLastBatteryLevel = mBatteryLevel;
+//            mLastPlugType = mPlugType;
+//            mLastBatteryVoltage = mBatteryVoltage;
+//            mLastBatteryTemperature = mBatteryTemperature;
+//            mLastBatteryLevelCritical = mBatteryLevelCritical;
+//        }
     }
 
     private final void sendIntent() {

@@ -654,7 +654,9 @@ class AlarmManagerService extends IAlarmManager.Stub {
                     mClockReceiver.scheduleTimeTickEvent();
                     Intent intent = new Intent(Intent.ACTION_TIME_CHANGED);
                     intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
-                    mContext.sendBroadcast(intent);
+                    // iVeia, dw 12/20/2011 -- Happening before boot complete, seems to
+                    // cause infinite loop when booting.
+                    //mContext.sendBroadcast(intent);
                 }
                 
                 synchronized (mLock) {

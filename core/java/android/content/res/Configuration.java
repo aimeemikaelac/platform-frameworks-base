@@ -224,6 +224,11 @@ public final class Configuration implements Parcelable, Comparable<Configuration
     }
 
     public void setTo(Configuration o) {
+        // iVeia, dw 12/20/2011 -- Check for NULL, causing unhandled exception
+        // in SystemServer thread on boot
+        if (o == null) {
+            return;
+        }
         fontScale = o.fontScale;
         mcc = o.mcc;
         mnc = o.mnc;
