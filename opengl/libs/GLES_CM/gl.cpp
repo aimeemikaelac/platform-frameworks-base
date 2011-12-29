@@ -95,7 +95,8 @@ GL_API void GL_APIENTRY glWeightPointerOESBounds(GLint size, GLenum type,
 #undef CALL_GL_API
 #undef CALL_GL_API_RETURN
 
-#if USE_FAST_TLS_KEY && !CHECK_FOR_GL_ERRORS
+//#if USE_FAST_TLS_KEY && !CHECK_FOR_GL_ERRORS
+#if 0
 
     #ifdef HAVE_ARM_TLS_REGISTER
         #define GET_TLS(reg) \
