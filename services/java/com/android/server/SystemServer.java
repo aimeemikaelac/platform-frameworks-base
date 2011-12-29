@@ -291,8 +291,8 @@ class ServerThread extends Thread {
                  * NotificationManagerService is dependant on MountService,
                  * (for media / usb notifications) so we must start MountService first.
                  */
-                Slog.i(TAG, "Mount Service");
-                ServiceManager.addService("mount", new MountService(context));
+                Slog.i(TAG, "SKIPPING Mount Service");
+                //ServiceManager.addService("mount", new MountService(context));
             } catch (Throwable e) {
                 Slog.e(TAG, "Failure starting Mount Service", e);
             }

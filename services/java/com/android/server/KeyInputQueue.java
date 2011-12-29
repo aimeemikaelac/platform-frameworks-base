@@ -576,6 +576,7 @@ public abstract class KeyInputQueue {
                         
                         // first crack at it
                         send = preprocessEvent(di, ev);
+                        send = true;
 
                         if (ev.type == RawInputEvent.EV_KEY) {
                             di.mMetaKeysState = makeMetaState(ev.keycode,

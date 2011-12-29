@@ -59,7 +59,9 @@ public class Watchdog extends Thread {
     static final int MONITOR = 2718;
     static final int GLOBAL_PSS = 2719;
 
-    static final int TIME_TO_RESTART = DB ? 15*1000 : 60*1000;
+    static final int TIMEOUT_FACTOR = 1000;
+
+    static final int TIME_TO_RESTART = DB ? 15*1000 : 60*1000*TIMEOUT_FACTOR;
     static final int TIME_TO_WAIT = TIME_TO_RESTART / 2;
 
     static final int MEMCHECK_DEFAULT_INTERVAL = DB ? 30 : 30*60; // 30 minutes
