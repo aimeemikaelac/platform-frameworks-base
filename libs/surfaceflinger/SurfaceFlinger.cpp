@@ -292,9 +292,9 @@ void SurfaceFlinger::bootFinished()
 {
     const nsecs_t now = systemTime();
     const nsecs_t duration = now - mBootTime;
-    LOGI("Boot is finished (%ld ms)", long(ns2ms(duration)) );  
+    LOGI("Boot is finished (%ld ms)", long(ns2ms(duration)) );
     mBootFinished = true;
-    property_set("ctl.stop", "bootanim");
+    //property_set("ctl.stop", "bootanim");
 }
 
 void SurfaceFlinger::onFirstRef()
@@ -328,10 +328,10 @@ status_t SurfaceFlinger::readyToRun()
     mServerHeap = new MemoryHeapBase(4096,
             MemoryHeapBase::READ_ONLY, "SurfaceFlinger read-only heap");
     LOGE_IF(mServerHeap==0, "can't create shared memory dealer");
-    
+
     mServerCblk = static_cast<surface_flinger_cblk_t*>(mServerHeap->getBase());
     LOGE_IF(mServerCblk==0, "can't get to shared control block's address");
-    
+
     new(mServerCblk) surface_flinger_cblk_t;
 
     // initialize primary screen
@@ -368,7 +368,7 @@ status_t SurfaceFlinger::readyToRun()
     glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexEnvx(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelStorei(GL_PACK_ALIGNMENT, 4); 
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnable(GL_SCISSOR_TEST);
     glShadeModel(GL_FLAT);
@@ -401,8 +401,8 @@ status_t SurfaceFlinger::readyToRun()
      */
 
     // start boot animation
-    property_set("ctl.start", "bootanim");
-    
+    //property_set("ctl.start", "bootanim");
+
     return NO_ERROR;
 }
 
@@ -775,7 +775,7 @@ void SurfaceFlinger::computeVisibleRegions(
 
         // Update aboveOpaqueLayers for next (lower) layer
         aboveOpaqueLayers.orSelf(opaqueRegion);
-        
+
         // Store the visible region is screen space
         layer->setVisibleRegion(visibleRegion);
         layer->setCoveredRegion(coveredRegion);
@@ -865,8 +865,8 @@ void SurfaceFlinger::handleRepaint()
     glLoadIdentity();
 
     uint32_t flags = hw.getFlags();
-    if ((flags & DisplayHardware::SWAP_RECTANGLE) || 
-        (flags & DisplayHardware::BUFFER_PRESERVED)) 
+    if ((flags & DisplayHardware::SWAP_RECTANGLE) ||
+        (flags & DisplayHardware::BUFFER_PRESERVED))
     {
         // we can redraw only what's dirty, but since SWAP_RECTANGLE only
         // takes a rectangle, we must make sure to update that whole
@@ -947,7 +947,7 @@ void SurfaceFlinger::debugFlashRegions()
                  mDirtyRegion.bounds() : hw.bounds());
          composeSurfaces(repaint);
      }
-    
+
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
     glDisable(GL_DITHER);
@@ -974,7 +974,7 @@ void SurfaceFlinger::debugFlashRegions()
         glVertexPointer(2, GL_FLOAT, 0, vertices);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
-    
+
     if (mInvalidRegion.isEmpty()) {
         mDirtyRegion.dump("mDirtyRegion");
         mInvalidRegion.dump("mInvalidRegion");
@@ -1160,7 +1160,7 @@ void SurfaceFlinger::closeGlobalTransaction()
     if (android_atomic_dec(&mTransactionCount) == 1) {
         signalEvent();
 
-        // if there is a transaction with a resize, wait for it to 
+        // if there is a transaction with a resize, wait for it to
         // take effect before returning.
         Mutex::Autolock _l(mStateLock);
         while (mResizeTransationPending) {
@@ -1204,7 +1204,7 @@ status_t SurfaceFlinger::unfreezeDisplay(DisplayID dpy, uint32_t flags)
     return NO_ERROR;
 }
 
-int SurfaceFlinger::setOrientation(DisplayID dpy, 
+int SurfaceFlinger::setOrientation(DisplayID dpy,
         int orientation, uint32_t flags)
 {
     if (UNLIKELY(uint32_t(dpy) >= DISPLAY_COUNT))
@@ -1237,7 +1237,7 @@ sp<ISurface> SurfaceFlinger::createSurface(ClientID clientId, int pid,
                 int(w), int(h));
         return surfaceHandle;
     }
-    
+
     Mutex::Autolock _l(mStateLock);
     sp<Client> client = mClientsMap.valueFor(clientId);
     if (UNLIKELY(client == 0)) {
@@ -1274,7 +1274,7 @@ sp<ISurface> SurfaceFlinger::createSurface(ClientID clientId, int pid,
         layer->setName(name);
         setTransactionFlags(eTransactionNeeded);
         surfaceHandle = layer->getSurface();
-        if (surfaceHandle != 0) { 
+        if (surfaceHandle != 0) {
             params->token = surfaceHandle->getToken();
             params->identity = surfaceHandle->getIdentity();
             params->width = w;
@@ -1349,7 +1349,7 @@ status_t SurfaceFlinger::removeSurface(SurfaceID index)
     /*
      * called by the window manager, when a surface should be marked for
      * destruction.
-     * 
+     *
      * The surface is removed from the current and drawing lists, but placed
      * in the purgatory queue, so it's not destroyed right-away (we need
      * to wait for all client's references to go away first).
@@ -1370,7 +1370,7 @@ status_t SurfaceFlinger::removeSurface(SurfaceID index)
 status_t SurfaceFlinger::destroySurface(const sp<LayerBaseClient>& layer)
 {
     // called by ~ISurface() when all references are gone
-    
+
     class MessageDestroySurface : public MessageBase {
         SurfaceFlinger* flinger;
         sp<LayerBaseClient> layer;
@@ -1383,9 +1383,9 @@ status_t SurfaceFlinger::destroySurface(const sp<LayerBaseClient>& layer)
             layer.clear(); // clear it outside of the lock;
             Mutex::Autolock _l(flinger->mStateLock);
             /*
-             * remove the layer from the current list -- chances are that it's 
-             * not in the list anyway, because it should have been removed 
-             * already upon request of the client (eg: window manager). 
+             * remove the layer from the current list -- chances are that it's
+             * not in the list anyway, because it should have been removed
+             * already upon request of the client (eg: window manager).
              * However, a buggy client could have not done that.
              * Since we know we don't have any more clients, we don't need
              * to use the purgatory.
@@ -1506,7 +1506,7 @@ status_t SurfaceFlinger::dump(int fd, const Vector<String16>& args)
         }
         const bool locked(retry >= 0);
         if (!locked) {
-            snprintf(buffer, SIZE, 
+            snprintf(buffer, SIZE,
                     "SurfaceFlinger appears to be unresponsive, "
                     "dumping anyways (no locks held)\n");
             result.append(buffer);
