@@ -296,7 +296,7 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
         synchronized (this) {
             if (DEBUG) Log.d(TAG, "onSystemReady");
             mSystemReady = true;
-            doKeyguard();
+            //doKeyguard();
         }
     }
 
@@ -392,7 +392,7 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
                     mExitSecureCallback = null;
                     resetStateLocked();
                 } else {
-                    showLocked();
+                    //showLocked();
 
                     // block until we know the keygaurd is done drawing (and post a message
                     // to unblock us after a timeout so we don't risk blocking too long
@@ -552,8 +552,8 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
                 return;
             }
 
-            if (DEBUG) Log.d(TAG, "doKeyguard: showing the lock screen");
-            showLocked();
+            //if (DEBUG) Log.d(TAG, "doKeyguard: showing the lock screen");
+            //showLocked();
         }
     }
 
