@@ -194,44 +194,46 @@ public final class ActivityManagerService extends ActivityManagerNative
     // Maximum number of recent tasks that we can remember.
     static final int MAX_RECENT_TASKS = 20;
     
+    static final int TIMEOUT_FACTOR = 1000;
+
     // Amount of time after a call to stopAppSwitches() during which we will
     // prevent further untrusted switches from happening.
-    static final long APP_SWITCH_DELAY_TIME = 5*1000;
+    static final long APP_SWITCH_DELAY_TIME = 5*1000*TIMEOUT_FACTOR;
 
     // How long we wait for a launched process to attach to the activity manager
     // before we decide it's never going to come up for real.
-    static final int PROC_START_TIMEOUT = 10*1000;
+    static final int PROC_START_TIMEOUT = 10*1000*TIMEOUT_FACTOR;
 
     // How long to wait after going idle before forcing apps to GC.
-    static final int GC_TIMEOUT = 5*1000;
+    static final int GC_TIMEOUT = 5*1000*TIMEOUT_FACTOR;
 
     // The minimum amount of time between successive GC requests for a process.
-    static final int GC_MIN_INTERVAL = 60*1000;
+    static final int GC_MIN_INTERVAL = 60*1000*TIMEOUT_FACTOR;
 
     // The rate at which we check for apps using excessive power -- 15 mins.
-    static final int POWER_CHECK_DELAY = (DEBUG_POWER_QUICK ? 2 : 15) * 60*1000;
+    static final int POWER_CHECK_DELAY = (DEBUG_POWER_QUICK ? 2 : 15) * 60*1000*TIMEOUT_FACTOR;
 
     // The minimum sample duration we will allow before deciding we have
     // enough data on wake locks to start killing things.
-    static final int WAKE_LOCK_MIN_CHECK_DURATION = (DEBUG_POWER_QUICK ? 1 : 5) * 60*1000;
+    static final int WAKE_LOCK_MIN_CHECK_DURATION = (DEBUG_POWER_QUICK ? 1 : 5) * 60*1000*TIMEOUT_FACTOR;
 
     // The minimum sample duration we will allow before deciding we have
     // enough data on CPU usage to start killing things.
-    static final int CPU_MIN_CHECK_DURATION = (DEBUG_POWER_QUICK ? 1 : 5) * 60*1000;
+    static final int CPU_MIN_CHECK_DURATION = (DEBUG_POWER_QUICK ? 1 : 5) * 60*1000*TIMEOUT_FACTOR;
 
     // How long we allow a receiver to run before giving up on it.
-    static final int BROADCAST_TIMEOUT = 10*1000;
+    static final int BROADCAST_TIMEOUT = 10*1000*TIMEOUT_FACTOR;
 
     // How long we wait for a service to finish executing.
-    static final int SERVICE_TIMEOUT = 20*1000;
+    static final int SERVICE_TIMEOUT = 20*1000*TIMEOUT_FACTOR;
 
     // How long a service needs to be running until restarting its process
     // is no longer considered to be a relaunch of the service.
-    static final int SERVICE_RESTART_DURATION = 5*1000;
+    static final int SERVICE_RESTART_DURATION = 5*1000*TIMEOUT_FACTOR;
 
     // How long a service needs to be running until it will start back at
     // SERVICE_RESTART_DURATION after being killed.
-    static final int SERVICE_RESET_RUN_DURATION = 60*1000;
+    static final int SERVICE_RESET_RUN_DURATION = 60*1000*TIMEOUT_FACTOR;
 
     // Multiplying factor to increase restart duration time by, for each time
     // a service is killed before it has run for SERVICE_RESET_RUN_DURATION.
@@ -240,22 +242,22 @@ public final class ActivityManagerService extends ActivityManagerNative
     // The minimum amount of time between restarting services that we allow.
     // That is, when multiple services are restarting, we won't allow each
     // to restart less than this amount of time from the last one.
-    static final int SERVICE_MIN_RESTART_TIME_BETWEEN = 10*1000;
+    static final int SERVICE_MIN_RESTART_TIME_BETWEEN = 10*1000*TIMEOUT_FACTOR;
 
     // Maximum amount of time for there to be no activity on a service before
     // we consider it non-essential and allow its process to go on the
     // LRU background list.
-    static final int MAX_SERVICE_INACTIVITY = 30*60*1000;
+    static final int MAX_SERVICE_INACTIVITY = 30*60*1000*TIMEOUT_FACTOR;
     
     // How long we wait until we timeout on key dispatching.
-    static final int KEY_DISPATCHING_TIMEOUT = 5*1000;
+    static final int KEY_DISPATCHING_TIMEOUT = 5*1000*TIMEOUT_FACTOR;
 
     // The minimum time we allow between crashes, for us to consider this
     // application to be bad and stop and its services and reject broadcasts.
-    static final int MIN_CRASH_INTERVAL = 60*1000;
+    static final int MIN_CRASH_INTERVAL = 60*1000*TIMEOUT_FACTOR;
 
     // How long we wait until we timeout on key dispatching during instrumentation.
-    static final int INSTRUMENTATION_KEY_DISPATCHING_TIMEOUT = 60*1000;
+    static final int INSTRUMENTATION_KEY_DISPATCHING_TIMEOUT = 60*1000*TIMEOUT_FACTOR;
 
     // OOM adjustments for processes in various states:
 
