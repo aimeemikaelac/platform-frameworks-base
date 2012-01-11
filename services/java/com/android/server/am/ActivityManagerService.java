@@ -6700,6 +6700,13 @@ public final class ActivityManagerService extends ActivityManagerNative
             }
 
             Slog.w(TAG, "Can't find mystery application: " + app);
+
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+
+            for(int i=0; i<elements.length; i++) {
+                Slog.w(TAG, "TRACE: " + elements[i]);
+            }
+
             return null;
         }
     }
