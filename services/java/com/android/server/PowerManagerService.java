@@ -1400,10 +1400,12 @@ class PowerManagerService extends IPowerManager.Stub
                     mScreenOffStart = SystemClock.uptimeMillis();
 
                     policy.screenTurnedOff(why);
+                    if  (false) {
                     try {
                         ActivityManagerNative.getDefault().goingToSleep();
                     } catch (RemoteException e) {
                         // ignore it.
+                    }
                     }
 
                     if (mContext != null && ActivityManagerNative.isSystemReady()) {
