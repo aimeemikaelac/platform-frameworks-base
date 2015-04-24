@@ -1767,7 +1767,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         //        the device some other way (which is why we have an exemption here for injected
         //        events).
         int result;
-        if (isScreenOn || isInjected) {
+        if (isScreenOn || isInjected || true) {
             // When the screen is on or if the key is injected pass the key to the application.
             result = ACTION_PASS_TO_USER;
         } else {
